@@ -1,112 +1,117 @@
+function logAndSpeak(tag, msg, isWarning) {
+    if (isWarning) {
+        logWarning(tag, msg);
+    } else {
+        logInfo(tag, msg);
+    }
+    speakText(msg);
+}
 
 // YouTube processing loop
 for (var i = 0; i <= 6; i++) {
     var iterMsg = "Processing YouTube account iteration " + i;
-    logInfo("MainActivity", iterMsg);
-    speakText(iterMsg);
-    
+    logAndSpeak("MainActivity", iterMsg, false);
+
     launchYouTube();
     delay(1000);
     doOpenAccountListSequenceYoutube();
     delay(5000);
-    
-    var index = 5 + i * 2;
-    delay(5000);
-    var indexMsg = "Chosen node " + index;
-    logWarning("MainActivity", indexMsg);
-    speakText(indexMsg);
-    
-    // Note: findNodeByClassNameAndIndexAndString would need to be implemented in the wrapper
-    var buttonNode34 = findNodeByClassNameAndIndex("android.widget.RelativeLayout", index); // Simplified
-    var buttonNodestring = buttonNode34 ? buttonNode34.contentDescription : null;
-    var nodeMsf = "Chosen node " + buttonNodestring;
-    logWarning("MainActivity", nodeMsf);
-    speakText(nodeMsf);
-    
+
+    var nodeIndex = 5 + i * 2;
+    logAndSpeak("MainActivity", "Chosen node " + nodeIndex, true);
+
+    var buttonNode = findNodeByClassNameAndIndex("android.widget.RelativeLayout", nodeIndex);
+    var buttonDesc = buttonNode ? buttonNode.contentDescription : null;
+    logAndSpeak("MainActivity", "Chosen node " + buttonDesc, true);
+
     var previousNodeContentDescription = null;
-    if (buttonNode34 != null) {
+
+    if (buttonNode != null) {
         // Attempt to get the node above it
-        var parentNode = buttonNode34.parent;
+        var parentNode = buttonNode.parent;
         if (parentNode != null) {
             var childCount = parentNode.childCount;
             var buttonIndex = -1;
+
             for (var idx = 0; idx < childCount; idx++) {
-                if (parentNode.getChild(idx) == buttonNode34) {
+                if (parentNode.getChild(idx) == buttonNode) {
                     buttonIndex = idx;
                     break;
                 }
             }
+
             if (buttonIndex > 0) {
                 var nodeAbove = parentNode.getChild(buttonIndex - 1);
-                previousNodeContentDescription = nodeAbove ? nodeAbove.contentDescription.toString() : null;
+                previousNodeContentDescription = nodeAbove && nodeAbove.contentDescription
+                    ? nodeAbove.contentDescription.toString()
+                    : null;
             }
         }
-        // Now click the chosen node
-        performNodeClick(buttonNode34);
-        var clickMsg = "Clicked node " + index;
-        logWarning("MainActivity", clickMsg);
-        speakText(clickMsg);
+
+        performNodeClick(buttonNode);
+        logAndSpeak("MainActivity", "Clicked node " + nodeIndex, true);
     }
-    
+
     delay(5000);
-    
+
     simulateClick(660, 1480);
-    delay(5000);
-    delay(5000);
-    
+    delay(10000);
+
     previousNodeContentDescription = getContentDescriptionForNodeContaining("@");
-    var prevNodeMsg = "PREVIOUS node text: " + previousNodeContentDescription;
-    logWarning("MainActivity", prevNodeMsg);
-    speakText(prevNodeMsg);
-    
+    logAndSpeak(
+        "MainActivity",
+        "PREVIOUS node text: " + previousNodeContentDescription,
+        true
+    );
+
     var agentMap = fetchAgentAccountsYoutube();
 
+    var replacedEmail = null;
+    var email = null;
+
     if (previousNodeContentDescription) {
+        replacedEmail = replaceAll(previousNodeContentDescription, ".", ",");
+        email = agentMap[replacedEmail];
+        checkAgentAccountsYoutube(replacedEmail);
+    } else {
+        email = "rohan@cheatlayer,com";
+    }
 
+    logAndSpeak("MainActivity", "Resolved email: " + email, true);
 
-		var replacedemail = replaceAll(previousNodeContentDescription, ".", ",");
-
-    var email = agentMap[previousNodeContentDescription ? replacedemail : null];
-        checkAgentAccountsYoutube(replacedemail);
-    }else{
-
-		var replacedemail = replaceAll(previousNodeContentDescription, ".", ",");
-
-    var email = "rohan@cheatlayer,com";
-
-}
-    
-    var emailMsg = "Resolved email: " + email;
-    logWarning("MainActivity", emailMsg);
-    speakText(emailMsg);
-    
     var serverMap = fetchAgentServerYoutube();
-    server = serverMap[previousNodeContentDescription ? replacedemail : null];
-    if (server == null) {
+    var server = serverMap[replacedEmail];
+    if (server == null && previousNodeContentDescription) {
         server = serverMap[previousNodeContentDescription];
     }
-    
-    delay(5000);
-    if (email != null && server != null) {
-        var fetchVideoMsg = "Fetching video for " + email + " on server " + server;
-        speakText(fetchVideoMsg);
-		var replacedemail = replaceAll(email, ".", ",");
 
-        var videoResult = fetchTodaysVideoSync(replacedemail, server);
+    delay(5000);
+
+    if (email != null && server != null) {
+        logAndSpeak(
+            "MainActivity",
+            "Fetching video for " + email + " on server " + server,
+            false
+        );
+
+        var fetchEmail = replaceAll(email, ".", ",");
+        var videoResult = fetchTodaysVideoSync(fetchEmail, server);
         var key = videoResult[0];
         var video = videoResult[1];
-        
+
         if (video != null && video.filename != null && video.filename != "") {
-            var downloadMsg = "Downloading video " + video.filename;
-            speakText(downloadMsg);
+            logAndSpeak("MainActivity", "Downloading video " + video.filename, false);
+
             var localFile = downloadVideo(video.video_url || "", video.filename);
             if (localFile != null) {
                 var caption = (video.affiliate_link || "") + " " + (video.caption || "");
-                var uploadMsg = "Uploading video to YouTube with caption: " + caption;
-                speakText(uploadMsg);
+                logAndSpeak(
+                    "MainActivity",
+                    "Uploading video to YouTube with caption: " + caption,
+                    false
+                );
 
                 doFullUploadSequenceYoutube(caption, email, server);
-                // DELETE the local video file after posting:
                 takeScreenshotAndUploadToLogs(email, "Youtube: " + caption, server);
 
                 if (localFile && localFile.delete) {
@@ -114,22 +119,21 @@ for (var i = 0; i <= 6; i++) {
                 }
                 speakText("Deleted local video file");
             } else {
-                var failedMsg = "Failed to download video for " + email;
-                logWarning("MainActivity", failedMsg);
-                speakText(failedMsg);
+                logAndSpeak("MainActivity", "Failed to download video for " + email, true);
             }
-            var markMsg = "Marking video as posted for " + email + " key " + key;
-            speakText(markMsg);
+
+            speakText("Marking video as posted for " + email + " key " + key);
             markVideoAsPosted(email, key);
         } else {
-            var noVideoMsg = "No unposted video or filename for " + email;
-            logWarning("MainActivity", noVideoMsg);
-            speakText(noVideoMsg);
+            logAndSpeak("MainActivity", "No unposted video or filename for " + email, true);
         }
+
         delay(5000);
     } else {
-        var noEmailMsg = "No mapped email for username: " + email + " " + previousNodeContentDescription;
-        logWarning("MainActivity", noEmailMsg);
-        speakText(noEmailMsg);
+        logAndSpeak(
+            "MainActivity",
+            "No mapped email for username: " + email + " " + previousNodeContentDescription,
+            true
+        );
     }
 }
