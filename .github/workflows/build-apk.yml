@@ -1,0 +1,35 @@
+name: Build PhoneClaw with Original Moondream
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:   # ← manual "Run workflow" button
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Build Debug APK (Original Moondream)
+        run: ./gradlew assembleDebug -PMOONDREAM_AUTH="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlfaWQiOiIyYzQ1MWVlZi00OGUwLTRlMjYtYWMwZS1lYTFhZDM0NWRjOGUiLCJvcmdfaWQiOiI5T2kyOU5xMjBhSlFyckJlcE5tUkRQbVZETmlpRDhFYiIsImlhdCI6MTc3MTQwNzU0NSwidmVyIjoxfQ.ZmriF5h9JI-kU-pCezoqnazw1ihdISVx7OhAymIq8gY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoneclaw-moondream-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
